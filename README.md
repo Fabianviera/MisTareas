@@ -18,7 +18,7 @@
 ## Instalación
 
 ### Windows
-[⬇ Descargar SetupMisTareas.exe](https://github.com/Fabianviera/MisTareas/releases/download/v0.1-beta/SetupMisTareas.exe)
+[⬇ Descargar Installer_MisTareas.exe](https://github.com/Fabianviera/MisTareas/releases/download/v0.1-beta/Installer_MisTareas.exe)
 
 Ejecuta el instalador y sigue el asistente. Se creará acceso directo en el escritorio y en el menú inicio.
 
