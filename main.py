@@ -249,6 +249,7 @@ class MisTareasApp(ctk.CTk):
         app_menu = tk.Menu(menubar, name="apple", tearoff=False)
         menubar.add_cascade(label="Archivo", menu=app_menu)
         app_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
+        app_menu.add_command(label="Licencia", command=self._show_license)
         app_menu.add_separator()
         app_menu.add_command(label="Salir", command=self._quit, accelerator="Cmd+Q")
 
@@ -360,7 +361,7 @@ class MisTareasApp(ctk.CTk):
         ).pack()
 
         ctk.CTkLabel(
-            win, text="2026  ·  Versión beta 0.1",
+            win, text="2026  ·  Versión beta 0.1  ·  Para uso no comercial",
             font=ctk.CTkFont(size=12),
             text_color=C["text_muted"]
         ).pack(pady=(2, 20))
@@ -372,6 +373,49 @@ class MisTareasApp(ctk.CTk):
             text_color="white",
             command=win.destroy
         ).pack()
+
+    def _show_license(self):
+        win = ctk.CTkToplevel(self)
+        win.title("Licencia")
+        win.geometry("560x440")
+        win.resizable(False, False)
+        win.configure(fg_color=C["bg"])
+        win.attributes("-topmost", True)
+        win.grab_set()
+
+        self.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width()  - 560) // 2
+        y = self.winfo_y() + (self.winfo_height() - 440) // 2
+        win.geometry(f"+{x}+{y}")
+
+        ctk.CTkLabel(
+            win, text="Licencia — GNU General Public License v3",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=C["accent"]
+        ).pack(pady=(16, 8), padx=16)
+
+        license_text = ctk.CTkTextbox(
+            win, fg_color=C["input_bg"], border_color=C["border"],
+            text_color=C["text"], font=ctk.CTkFont(size=11),
+            corner_radius=10, border_width=1, wrap="word"
+        )
+        license_text.pack(fill="both", expand=True, padx=16, pady=(0, 8))
+
+        license_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LICENSE")
+        if os.path.exists(license_path):
+            with open(license_path, "r", encoding="utf-8") as f:
+                license_text.insert("end", f.read())
+        else:
+            license_text.insert("end", "GNU General Public License v3\n\nhttps://www.gnu.org/licenses/gpl-3.0.html")
+        license_text.configure(state="disabled")
+
+        ctk.CTkButton(
+            win, text="Cerrar", width=100, height=34,
+            corner_radius=10,
+            fg_color=C["accent"], hover_color=C["accent_hover"],
+            text_color="white",
+            command=win.destroy
+        ).pack(pady=(0, 16))
 
     def _clear_done(self):
         count = sum(1 for t in self.tasks if t["done"])
