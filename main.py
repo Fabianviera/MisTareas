@@ -401,7 +401,10 @@ class MisTareasApp(ctk.CTk):
         )
         license_text.pack(fill="both", expand=True, padx=16, pady=(0, 8))
 
-        license_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LICENSE")
+        if getattr(sys, 'frozen', False):
+            license_path = os.path.join(sys._MEIPASS, "LICENSE")
+        else:
+            license_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LICENSE")
         if os.path.exists(license_path):
             with open(license_path, "r", encoding="utf-8") as f:
                 license_text.insert("end", f.read())
