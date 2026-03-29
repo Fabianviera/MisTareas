@@ -1,0 +1,5 @@
+site_name: Mis Tareas
+
+nav:
+  - Home: index.md
+
