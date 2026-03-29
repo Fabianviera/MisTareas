@@ -23,6 +23,9 @@
 Ejecuta el instalador y sigue el asistente. Se creará acceso directo en el escritorio y en el menú inicio.
 
 ### macOS
+
+En construcción...
+
 Abre el archivo `.dmg`, arrastra la app a la carpeta Aplicaciones.
 
 ## Uso
