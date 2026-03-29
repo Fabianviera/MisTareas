@@ -18,7 +18,9 @@
 ## Instalación
 
 ### Windows
-Descarga el instalador `SetupMisTareas.exe` y sigue el asistente. Se creará acceso directo en el escritorio y en el menú inicio.
+[⬇ Descargar SetupMisTareas.exe](https://github.com/Fabianviera/MisTareas/releases/download/v0.1-beta/SetupMisTareas.exe)
+
+Ejecuta el instalador y sigue el asistente. Se creará acceso directo en el escritorio y en el menú inicio.
 
 ### macOS
 Abre el archivo `.dmg`, arrastra la app a la carpeta Aplicaciones.
