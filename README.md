@@ -18,7 +18,7 @@
 ## Instalación
 
 ### Windows
-[⬇ Descargar Installer_MisTareas.exe](https://github.com/Fabianviera/MisTareas/releases/download/v0.1-beta/Installer_MisTareas.exe)
+[⬇ Descargar Installer_MisTareas.exe](https://github.com/Fabianviera/MisTareas/releases/download/v0.2-beta/Installer_MisTareas.exe)
 
 Ejecuta el instalador y sigue el asistente. Se creará acceso directo en el escritorio y en el menú inicio.
 
@@ -45,4 +45,4 @@ Abre el archivo `.dmg`, arrastra la app a la carpeta Aplicaciones.
 
 ## Autor
 
-Fabián Viera — 2026 · Versión beta 0.1
+Fabián Viera — 2026 · Versión beta 0.2

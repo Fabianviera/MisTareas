@@ -716,7 +716,7 @@ class MisTareasApp(ctk.CTk):
                      text_color=C["accent"]).pack(pady=(28, 4))
         ctk.CTkLabel(win, text="Creado por Fabián Viera",
                      font=ctk.CTkFont(size=13), text_color=C["text"]).pack()
-        ctk.CTkLabel(win, text="2026  ·  Versión beta 0.1  ·  Para uso no comercial",
+        ctk.CTkLabel(win, text="2026  ·  Versión beta 0.2  ·  Para uso no comercial",
                      font=ctk.CTkFont(size=12), text_color=C["text_muted"]).pack(pady=(2, 20))
         ctk.CTkButton(win, text="Cerrar", width=100, height=34, corner_radius=10,
                       fg_color=C["accent"], hover_color=C["accent_hover"],
@@ -844,7 +844,7 @@ class MisTareasApp(ctk.CTk):
         footer.pack(fill="x", side="bottom")
         footer.pack_propagate(False)
         ctk.CTkLabel(
-            footer, text="Fabián Viera · 2026 · Versión beta 0.1",
+            footer, text="Fabián Viera · 2026 · Versión beta 0.2",
             font=ctk.CTkFont(size=11), text_color=C["text_muted"]
         ).pack(side="left", padx=16, expand=True)
         ctk.CTkButton(

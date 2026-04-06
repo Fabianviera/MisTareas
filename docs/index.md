@@ -38,4 +38,4 @@ Abre el archivo `.dmg`, arrastra la app a la carpeta Aplicaciones.
 
 ## Autor
 
-Fabián Viera — 2026 · Versión beta 0.1
+Fabián Viera — 2026 · Versión beta 0.2
