@@ -653,22 +653,41 @@ class MisTareasApp(ctk.CTk):
     def _build_menubar(self):
         menubar = tk.Menu(self)
 
-        quit_accel = "Cmd+Q" if sys.platform == "darwin" else "Ctrl+Q"
-        file_menu = tk.Menu(menubar, tearoff=False)
-        menubar.add_cascade(label="Archivo", menu=file_menu)
-        file_menu.add_command(label="Salir", command=self._quit, accelerator=quit_accel)
+        if sys.platform == "darwin":
+            # ── macOS: menú de aplicación estándar ──
+            app_menu = tk.Menu(menubar, name="apple", tearoff=False)
+            menubar.add_cascade(label="MisTareas", menu=app_menu)
+            app_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
+            app_menu.add_separator()
+            app_menu.add_command(label="Salir", command=self._quit, accelerator="Cmd+Q")
 
-        tasks_menu = tk.Menu(menubar, tearoff=False)
-        menubar.add_cascade(label="Tareas", menu=tasks_menu)
-        tasks_menu.add_command(label="Borrar completadas", command=self._clear_done)
-        tasks_menu.add_command(label="Borrar todas",       command=self._clear_all)
+            tasks_menu = tk.Menu(menubar, tearoff=False)
+            menubar.add_cascade(label="Tareas", menu=tasks_menu)
+            tasks_menu.add_command(label="Borrar completadas", command=self._clear_done)
+            tasks_menu.add_command(label="Borrar todas",       command=self._clear_all)
 
-        help_menu = tk.Menu(menubar, tearoff=False)
-        menubar.add_cascade(label="Ayuda", menu=help_menu)
-        help_menu.add_command(label="Ayuda de MisTareas", command=self._show_help)
-        help_menu.add_separator()
-        help_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
-        help_menu.add_command(label="Licencia",            command=self._show_license)
+            help_menu = tk.Menu(menubar, tearoff=False)
+            menubar.add_cascade(label="Ayuda", menu=help_menu)
+            help_menu.add_command(label="Ayuda de MisTareas", command=self._show_help)
+            help_menu.add_command(label="Licencia",            command=self._show_license)
+
+        else:
+            # ── Windows / Linux ──
+            file_menu = tk.Menu(menubar, tearoff=False)
+            menubar.add_cascade(label="Archivo", menu=file_menu)
+            file_menu.add_command(label="Salir", command=self._quit, accelerator="Ctrl+Q")
+
+            tasks_menu = tk.Menu(menubar, tearoff=False)
+            menubar.add_cascade(label="Tareas", menu=tasks_menu)
+            tasks_menu.add_command(label="Borrar completadas", command=self._clear_done)
+            tasks_menu.add_command(label="Borrar todas",       command=self._clear_all)
+
+            help_menu = tk.Menu(menubar, tearoff=False)
+            menubar.add_cascade(label="Ayuda", menu=help_menu)
+            help_menu.add_command(label="Ayuda de MisTareas", command=self._show_help)
+            help_menu.add_separator()
+            help_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
+            help_menu.add_command(label="Licencia",            command=self._show_license)
 
         self.config(menu=menubar)
 
