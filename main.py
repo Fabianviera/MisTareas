@@ -6,7 +6,7 @@ import os
 import sys
 from datetime import datetime
 
-def _now() -> str:
+def _ahora() -> str:
     return datetime.now().strftime("%d/%m/%Y  %H:%M")
 
 # ── Apariencia ────────────────────────────────────────────────────────────────
@@ -37,10 +37,10 @@ C = {
 }
 
 if getattr(sys, 'frozen', False):
-    BASE_DIR = os.path.dirname(sys.executable)
+    DIR_BASE = os.path.dirname(sys.executable)
 else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TASKS_FILE = os.path.join(BASE_DIR, "tasks.json")
+    DIR_BASE = os.path.dirname(os.path.abspath(__file__))
+ARCHIVO_TAREAS = os.path.join(DIR_BASE, "tasks.json")
 
 
 class MisTareasApp(ctk.CTk):
@@ -51,198 +51,198 @@ class MisTareasApp(ctk.CTk):
         self.geometry("430x932")
         self.minsize(320, 480)
         self.configure(fg_color=C["bg"])
-        self._always_on_top = False
-        self._menu_popup    = None
-        self._selected      = None
-        self._drag_data     = {}
-        self._row_widgets   = []
-        self._drag_anim     = {"target": None, "old_target": None,
-                               "old_gap": 0, "step": 0, "after_id": None}
+        self._siempre_visible    = False
+        self._menu_emergente     = None
+        self._seleccionada       = None
+        self._datos_arrastre     = {}
+        self._widgets_fila       = []
+        self._anim_arrastre      = {"target": None, "old_target": None,
+                                    "old_gap": 0, "step": 0, "after_id": None}
 
-        self.tasks: list[dict] = []
-        self._load_tasks()
+        self.tareas: list[dict] = []
+        self._cargar_tareas()
 
-        self._build_ui()
-        self._build_menubar()
-        self._render_tasks()
+        self._construir_ui()
+        self._construir_barra_menus()
+        self._renderizar_tareas()
 
-        self.protocol("WM_DELETE_WINDOW", self._quit)
-        quit_key = "<Command-q>" if sys.platform == "darwin" else "<Control-q>"
-        self.bind_all(quit_key, lambda _: self._quit())
-        self.bind_all("<Button-1>", self._on_global_click)
-        self.bind_all("<Up>",   self._on_key_up)
-        self.bind_all("<Down>", self._on_key_down)
+        self.protocol("WM_DELETE_WINDOW", self._salir)
+        tecla_salir = "<Command-q>" if sys.platform == "darwin" else "<Control-q>"
+        self.bind_all(tecla_salir, lambda _: self._salir())
+        self.bind_all("<Button-1>", self._al_clic_global)
+        self.bind_all("<Up>",   self._al_pulsar_arriba)
+        self.bind_all("<Down>", self._al_pulsar_abajo)
 
     # ── Construcción de UI ────────────────────────────────────────────────────
 
-    def _build_ui(self):
-        header = ctk.CTkFrame(self, fg_color=C["header"], corner_radius=0, height=64)
-        header.pack(fill="x")
-        header.pack_propagate(False)
+    def _construir_ui(self):
+        cabecera = ctk.CTkFrame(self, fg_color=C["header"], corner_radius=0, height=64)
+        cabecera.pack(fill="x")
+        cabecera.pack_propagate(False)
 
         ctk.CTkLabel(
-            header, text="✓  MisTareas",
+            cabecera, text="✓  MisTareas",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color=C["text"]
         ).pack(side="left", padx=16)
 
-        self._menu_btn = ctk.CTkButton(
-            header, text="⋮", width=38, height=38, corner_radius=19,
+        self._btn_menu = ctk.CTkButton(
+            cabecera, text="⋮", width=38, height=38, corner_radius=19,
             fg_color="transparent", hover_color=C["task_hover"],
             text_color=C["text"], font=ctk.CTkFont(size=24),
-            command=self._show_menu
+            command=self._mostrar_menu
         )
-        self._menu_btn.pack(side="right", padx=8)
+        self._btn_menu.pack(side="right", padx=8)
 
-        self._pin_btn = ctk.CTkButton(
-            header, text="📌", width=38, height=38, corner_radius=19,
+        self._btn_pin = ctk.CTkButton(
+            cabecera, text="📌", width=38, height=38, corner_radius=19,
             fg_color="transparent", hover_color=C["task_hover"],
             text_color=C["text_muted"], font=ctk.CTkFont(size=16),
-            command=self._toggle_pin
+            command=self._alternar_pin
         )
-        self._pin_btn.pack(side="right", padx=4)
-        self._update_pin_btn()
+        self._btn_pin.pack(side="right", padx=4)
+        self._actualizar_btn_pin()
 
-        input_row = ctk.CTkFrame(self, fg_color="transparent")
-        input_row.pack(fill="x", padx=14, pady=(14, 6))
+        fila_entrada = ctk.CTkFrame(self, fg_color="transparent")
+        fila_entrada.pack(fill="x", padx=14, pady=(14, 6))
 
-        self._entry = ctk.CTkEntry(
-            input_row,
+        self._entrada = ctk.CTkEntry(
+            fila_entrada,
             placeholder_text="Añadir nueva tarea…",
             fg_color=C["input_bg"], border_color=C["border"],
             text_color=C["text"], placeholder_text_color=C["text_muted"],
             height=46, corner_radius=14, font=ctk.CTkFont(size=14)
         )
-        self._entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self._entry.bind("<Return>", lambda _: self._add_task())
+        self._entrada.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self._entrada.bind("<Return>", lambda _: self._añadir_tarea())
 
         ctk.CTkButton(
-            input_row, text="+", width=46, height=46, corner_radius=14,
+            fila_entrada, text="+", width=46, height=46, corner_radius=14,
             fg_color=C["accent"], hover_color=C["accent_hover"],
             text_color="white", font=ctk.CTkFont(size=24, weight="bold"),
-            command=self._add_task
+            command=self._añadir_tarea
         ).pack(side="right")
 
-        counter_row = ctk.CTkFrame(self, fg_color="transparent")
-        counter_row.pack(fill="x", padx=18, pady=(0, 4))
+        fila_contador = ctk.CTkFrame(self, fg_color="transparent")
+        fila_contador.pack(fill="x", padx=18, pady=(0, 4))
 
-        self._counter = ctk.CTkLabel(
-            counter_row, text="",
+        self._contador = ctk.CTkLabel(
+            fila_contador, text="",
             font=ctk.CTkFont(size=12),
             text_color=C["text_muted"]
         )
-        self._counter.pack(side="left")
+        self._contador.pack(side="left")
 
-        self._list = ctk.CTkScrollableFrame(
+        self._lista = ctk.CTkScrollableFrame(
             self, fg_color="transparent",
             scrollbar_button_color=C["scroll"],
             scrollbar_button_hover_color=C["accent"]
         )
-        self._list.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        self._lista.pack(fill="both", expand=True, padx=12, pady=(0, 12))
 
     # ── Lógica de tareas ──────────────────────────────────────────────────────
 
-    def _add_task(self):
-        text = self._entry.get().strip()
-        if not text:
+    def _añadir_tarea(self):
+        texto = self._entrada.get().strip()
+        if not texto:
             return
-        if len(text) > 200:
+        if len(texto) > 200:
             messagebox.showwarning("MisTareas", "El texto no puede superar los 200 caracteres.")
             return
-        self.tasks.append({
-            "text": text, "done": False,
-            "created_at": _now(), "done_at": None,
+        self.tareas.append({
+            "text": texto, "done": False,
+            "created_at": _ahora(), "done_at": None,
             "priority": False, "priority_at": None
         })
-        self._entry.delete(0, "end")
-        self._save_tasks()
-        self._render_tasks()
+        self._entrada.delete(0, "end")
+        self._guardar_tareas()
+        self._renderizar_tareas()
 
-    def _toggle_task(self, index: int, var: ctk.BooleanVar):
-        task = self.tasks[index]
-        task["done"]    = var.get()
-        task["done_at"] = _now() if var.get() else None
+    def _alternar_tarea(self, indice: int, var: ctk.BooleanVar):
+        tarea = self.tareas[indice]
+        tarea["done"]    = var.get()
+        tarea["done_at"] = _ahora() if var.get() else None
 
         # Al marcar como hecha, quitar la prioridad y mover fuera de la sección prioritaria
-        if var.get() and task.get("priority"):
-            task["priority"]    = False
-            task["priority_at"] = None
-            self.tasks.pop(index)
+        if var.get() and tarea.get("priority"):
+            tarea["priority"]    = False
+            tarea["priority_at"] = None
+            self.tareas.pop(indice)
             # Insertar justo después del bloque de prioritarias
-            insert_pos = sum(1 for t in self.tasks if t["priority"])
-            self.tasks.insert(insert_pos, task)
-            if self._selected == index:
-                self._selected = insert_pos
+            pos_insercion = sum(1 for t in self.tareas if t["priority"])
+            self.tareas.insert(pos_insercion, tarea)
+            if self._seleccionada == indice:
+                self._seleccionada = pos_insercion
 
-        self._save_tasks()
-        self._render_tasks()
+        self._guardar_tareas()
+        self._renderizar_tareas()
 
-    def _delete_task(self, index: int):
-        self.tasks.pop(index)
-        if self._selected == index:
-            self._selected = None
-        elif self._selected is not None and self._selected > index:
-            self._selected -= 1
-        self._save_tasks()
-        self._render_tasks()
+    def _eliminar_tarea(self, indice: int):
+        self.tareas.pop(indice)
+        if self._seleccionada == indice:
+            self._seleccionada = None
+        elif self._seleccionada is not None and self._seleccionada > indice:
+            self._seleccionada -= 1
+        self._guardar_tareas()
+        self._renderizar_tareas()
 
-    def _toggle_priority(self, index: int):
-        task = self.tasks[index]
-        task["priority"]    = not task["priority"]
-        task["priority_at"] = _now() if task["priority"] else None
-        self.tasks.pop(index)
-        insert_pos = sum(1 for t in self.tasks if t["priority"])
-        self.tasks.insert(insert_pos, task)
-        self._selected = insert_pos
-        self._save_tasks()
-        self._render_tasks()
+    def _alternar_prioridad(self, indice: int):
+        tarea = self.tareas[indice]
+        tarea["priority"]    = not tarea["priority"]
+        tarea["priority_at"] = _ahora() if tarea["priority"] else None
+        self.tareas.pop(indice)
+        pos_insercion = sum(1 for t in self.tareas if t["priority"])
+        self.tareas.insert(pos_insercion, tarea)
+        self._seleccionada = pos_insercion
+        self._guardar_tareas()
+        self._renderizar_tareas()
 
-    def _select_task(self, index: int):
-        old = self._selected
-        self._selected = None if self._selected == index else index
-        for idx in (old, self._selected):
-            if idx is not None and idx < len(self._row_widgets):
-                task = self.tasks[idx]
-                is_priority = task.get("priority", False)
-                is_selected = (self._selected == idx)
-                if is_selected:
-                    bg = C["task_selected"]
-                elif is_priority:
-                    bg = C["task_priority"]
+    def _seleccionar_tarea(self, indice: int):
+        anterior = self._seleccionada
+        self._seleccionada = None if self._seleccionada == indice else indice
+        for idx in (anterior, self._seleccionada):
+            if idx is not None and idx < len(self._widgets_fila):
+                tarea = self.tareas[idx]
+                es_prioritaria = tarea.get("priority", False)
+                es_seleccionada = (self._seleccionada == idx)
+                if es_seleccionada:
+                    fondo = C["task_selected"]
+                elif es_prioritaria:
+                    fondo = C["task_priority"]
                 else:
-                    bg = C["task_bg"]
+                    fondo = C["task_bg"]
                 try:
-                    self._row_widgets[idx].configure(fg_color=bg)
+                    self._widgets_fila[idx].configure(fg_color=fondo)
                 except Exception:
                     pass
 
-    def _on_key_up(self, event):
+    def _al_pulsar_arriba(self, event):
         if not isinstance(event.widget, (ctk.CTkEntry, tk.Entry)):
-            self._move_selected(-1)
+            self._mover_seleccionada(-1)
 
-    def _on_key_down(self, event):
+    def _al_pulsar_abajo(self, event):
         if not isinstance(event.widget, (ctk.CTkEntry, tk.Entry)):
-            self._move_selected(1)
+            self._mover_seleccionada(1)
 
-    def _move_selected(self, direction: int):
-        if self._selected is None:
+    def _mover_seleccionada(self, direccion: int):
+        if self._seleccionada is None:
             return
-        i = self._selected
-        j = i + direction
-        if 0 <= j < len(self.tasks):
-            ti, tj = self.tasks[i], self.tasks[j]
+        i = self._seleccionada
+        j = i + direccion
+        if 0 <= j < len(self.tareas):
+            ti, tj = self.tareas[i], self.tareas[j]
             if ti.get("priority") == tj.get("priority"):
-                self.tasks[i], self.tasks[j] = self.tasks[j], self.tasks[i]
-                self._selected = j
-                self._save_tasks()
-                self._render_tasks()
+                self.tareas[i], self.tareas[j] = self.tareas[j], self.tareas[i]
+                self._seleccionada = j
+                self._guardar_tareas()
+                self._renderizar_tareas()
 
     # ── Menú: cerrar al hacer clic fuera ─────────────────────────────────────
 
-    def _on_global_click(self, event):
-        if self._menu_popup is None or getattr(self, "_menu_just_opened", False):
+    def _al_clic_global(self, event):
+        if self._menu_emergente is None or getattr(self, "_menu_recien_abierto", False):
             return
-        menu = self._menu_popup
+        menu = self._menu_emergente
         try:
             mx, my = menu.winfo_rootx(), menu.winfo_rooty()
             mw, mh = menu.winfo_width(), menu.winfo_height()
@@ -251,20 +251,20 @@ class MisTareasApp(ctk.CTk):
                     menu.destroy()
                 except Exception:
                     pass
-                self._menu_popup = None
+                self._menu_emergente = None
         except Exception:
             try:
                 menu.destroy()
             except Exception:
                 pass
-            self._menu_popup = None
+            self._menu_emergente = None
 
     # ── Drag & Drop ───────────────────────────────────────────────────────────
 
     # ── Helpers de Canvas redondeado ─────────────────────────────────────────
 
     @staticmethod
-    def _rounded_rect(cv, x1, y1, x2, y2, r, fill, outline=""):
+    def _rect_redondeado(cv, x1, y1, x2, y2, r, fill, outline=""):
         cv.create_arc(x1,    y1,    x1+2*r, y1+2*r, start=90,  extent=90, fill=fill, outline=fill)
         cv.create_arc(x2-2*r,y1,    x2,     y1+2*r, start=0,   extent=90, fill=fill, outline=fill)
         cv.create_arc(x1,    y2-2*r,x1+2*r, y2,     start=180, extent=90, fill=fill, outline=fill)
@@ -281,143 +281,143 @@ class MisTareasApp(ctk.CTk):
             cv.create_line(x1,   y1+r, x1,   y2-r, fill=outline)
             cv.create_line(x2,   y1+r, x2,   y2-r, fill=outline)
 
-    def _create_ghost(self, index: int, x_root: int, y_root: int):
-        task = self.tasks[index]
+    def _crear_fantasma(self, indice: int, x_root: int, y_root: int):
+        tarea = self.tareas[indice]
         self.update_idletasks()
-        row_w, row_h = 380, 52
-        list_x = x_root - row_w // 2
-        if index < len(self._row_widgets):
+        ancho_fila, alto_fila = 380, 52
+        x_lista = x_root - ancho_fila // 2
+        if indice < len(self._widgets_fila):
             try:
-                row_w  = self._row_widgets[index].winfo_width()
-                row_h  = self._row_widgets[index].winfo_height()
-                list_x = self._list.winfo_rootx()
+                ancho_fila = self._widgets_fila[indice].winfo_width()
+                alto_fila  = self._widgets_fila[indice].winfo_height()
+                x_lista    = self._lista.winfo_rootx()
             except Exception:
                 pass
 
-        y = y_root - row_h // 2
+        y = y_root - alto_fila // 2
         TRANS = "#F0EFF0"   # color clave de transparencia (no existe en nuestra paleta)
         r = 12
 
         # ── Sombra con esquinas redondeadas ──
-        shadow = tk.Toplevel(self)
-        shadow.overrideredirect(True)
-        shadow.attributes("-topmost", True)
-        shadow.configure(bg=TRANS)
+        sombra = tk.Toplevel(self)
+        sombra.overrideredirect(True)
+        sombra.attributes("-topmost", True)
+        sombra.configure(bg=TRANS)
         try:
-            shadow.wm_attributes("-transparentcolor", TRANS)
-            shadow.attributes("-alpha", 0.35)
+            sombra.wm_attributes("-transparentcolor", TRANS)
+            sombra.attributes("-alpha", 0.35)
         except Exception:
             pass
-        shadow.geometry(f"{row_w}x{row_h}+{list_x + 5}+{y + 5}")
-        scv = tk.Canvas(shadow, width=row_w, height=row_h, bg=TRANS, highlightthickness=0)
+        sombra.geometry(f"{ancho_fila}x{alto_fila}+{x_lista + 5}+{y + 5}")
+        scv = tk.Canvas(sombra, width=ancho_fila, height=alto_fila, bg=TRANS, highlightthickness=0)
         scv.pack(fill="both", expand=True)
-        self._rounded_rect(scv, 0, 0, row_w, row_h, r, "#222222")
+        self._rect_redondeado(scv, 0, 0, ancho_fila, alto_fila, r, "#222222")
 
         # ── Ghost principal con esquinas redondeadas ──
-        ghost = tk.Toplevel(self)
-        ghost.overrideredirect(True)
-        ghost.attributes("-topmost", True)
-        ghost.configure(bg=TRANS)
+        fantasma = tk.Toplevel(self)
+        fantasma.overrideredirect(True)
+        fantasma.attributes("-topmost", True)
+        fantasma.configure(bg=TRANS)
         try:
-            ghost.wm_attributes("-transparentcolor", TRANS)
-            ghost.attributes("-alpha", 0.95)
+            fantasma.wm_attributes("-transparentcolor", TRANS)
+            fantasma.attributes("-alpha", 0.95)
         except Exception:
             pass
-        ghost.geometry(f"{row_w}x{row_h}+{list_x}+{y}")
+        fantasma.geometry(f"{ancho_fila}x{alto_fila}+{x_lista}+{y}")
 
-        is_priority = task.get("priority", False)
-        bg         = C["task_priority"] if is_priority else "#FFFFFF"
-        text_color = C["text_priority"] if is_priority else C["text"]
-        label_text = ("⭐  " if is_priority else "") + task["text"]
+        es_prioritaria = tarea.get("priority", False)
+        fondo          = C["task_priority"] if es_prioritaria else "#FFFFFF"
+        color_texto    = C["text_priority"] if es_prioritaria else C["text"]
+        texto_etiqueta = ("⭐  " if es_prioritaria else "") + tarea["text"]
 
-        gcv = tk.Canvas(ghost, width=row_w, height=row_h, bg=TRANS, highlightthickness=0)
+        gcv = tk.Canvas(fantasma, width=ancho_fila, height=alto_fila, bg=TRANS, highlightthickness=0)
         gcv.pack(fill="both", expand=True)
-        self._rounded_rect(gcv, 0, 0, row_w, row_h, r, bg, C["accent"])
-        gcv.create_text(16, row_h//2, text="≡",       fill=C["drag_handle"],
+        self._rect_redondeado(gcv, 0, 0, ancho_fila, alto_fila, r, fondo, C["accent"])
+        gcv.create_text(16, alto_fila//2, text="≡",           fill=C["drag_handle"],
                         font=("Segoe UI", 15), anchor="w")
-        gcv.create_text(36, row_h//2, text=label_text, fill=text_color,
+        gcv.create_text(36, alto_fila//2, text=texto_etiqueta, fill=color_texto,
                         font=("Segoe UI", 12), anchor="w")
 
-        self._drag_data.update(ghost=ghost, shadow=shadow,
-                               list_x=list_x, row_h=row_h, row_w=row_w)
+        self._datos_arrastre.update(ghost=fantasma, shadow=sombra,
+                                    list_x=x_lista, row_h=alto_fila, row_w=ancho_fila)
 
-    def _start_drag(self, event, index: int):
-        self._drag_data = {"index": index, "target": index,
-                           "current_y": float(event.y_root)}
-        if self._selected != index:
-            self._selected = index
-            self._render_tasks()
+    def _iniciar_arrastre(self, event, indice: int):
+        self._datos_arrastre = {"index": indice, "target": indice,
+                                "current_y": float(event.y_root)}
+        if self._seleccionada != indice:
+            self._seleccionada = indice
+            self._renderizar_tareas()
 
-        self._create_ghost(index, event.x_root, event.y_root)
+        self._crear_fantasma(indice, event.x_root, event.y_root)
 
-        if index < len(self._row_widgets):
+        if indice < len(self._widgets_fila):
             try:
-                self._row_widgets[index].configure(fg_color=C["drag_source"])
+                self._widgets_fila[indice].configure(fg_color=C["drag_source"])
             except Exception:
                 pass
 
         # Iniciar bucle de movimiento suave
-        self._drag_data["loop_id"] = self.after(16, self._ghost_anim_loop)
+        self._datos_arrastre["loop_id"] = self.after(16, self._bucle_anim_fantasma)
 
         # Resetear animación
-        if self._drag_anim.get("after_id"):
+        if self._anim_arrastre.get("after_id"):
             try:
-                self.after_cancel(self._drag_anim["after_id"])
+                self.after_cancel(self._anim_arrastre["after_id"])
             except Exception:
                 pass
-        self._drag_anim = {"target": None, "old_target": None,
-                           "old_gap": 0, "step": 0, "after_id": None}
+        self._anim_arrastre = {"target": None, "old_target": None,
+                               "old_gap": 0, "step": 0, "after_id": None}
 
         try:
             self.config(cursor="fleur")
         except Exception:
             pass
 
-        self.bind_all("<B1-Motion>",       self._on_drag)
-        self.bind_all("<ButtonRelease-1>", self._end_drag_global)
+        self.bind_all("<B1-Motion>",       self._al_arrastrar)
+        self.bind_all("<ButtonRelease-1>", self._fin_arrastre_global)
 
-    def _ghost_anim_loop(self):
+    def _bucle_anim_fantasma(self):
         """Bucle a ~60 fps que mueve el ghost con lerp para eliminar saltos."""
-        if not self._drag_data or "ghost" not in self._drag_data:
+        if not self._datos_arrastre or "ghost" not in self._datos_arrastre:
             return
         try:
             x_root, y_root = self.winfo_pointerxy()
         except Exception:
-            self._drag_data["loop_id"] = self.after(16, self._ghost_anim_loop)
+            self._datos_arrastre["loop_id"] = self.after(16, self._bucle_anim_fantasma)
             return
 
         # Interpolación suave hacia la posición real del cursor
         LERP = 0.55
-        cy = self._drag_data.get("current_y", float(y_root))
+        cy = self._datos_arrastre.get("current_y", float(y_root))
         cy = cy + (y_root - cy) * LERP
-        self._drag_data["current_y"] = cy
+        self._datos_arrastre["current_y"] = cy
 
-        list_x = self._drag_data.get("list_x", x_root)
-        row_h  = self._drag_data.get("row_h", 52)
-        iy     = int(cy) - row_h // 2
+        x_lista = self._datos_arrastre.get("list_x", x_root)
+        alto_fila = self._datos_arrastre.get("row_h", 52)
+        iy     = int(cy) - alto_fila // 2
 
         for key, dx, dy in [("ghost", 0, 0), ("shadow", 5, 5)]:
-            w = self._drag_data.get(key)
+            w = self._datos_arrastre.get(key)
             if w:
                 try:
-                    w.geometry(f"+{list_x + dx}+{iy + dy}")
+                    w.geometry(f"+{x_lista + dx}+{iy + dy}")
                 except Exception:
                     pass
 
         # Detectar nuevo destino y animar apertura
-        new_target = self._get_drag_target(y_root)
-        if new_target != self._drag_data.get("target"):
-            self._drag_data["target"] = new_target
-            self._start_gap_anim(new_target)
+        nuevo_destino = self._obtener_destino_arrastre(y_root)
+        if nuevo_destino != self._datos_arrastre.get("target"):
+            self._datos_arrastre["target"] = nuevo_destino
+            self._iniciar_anim_hueco(nuevo_destino)
 
-        self._drag_data["loop_id"] = self.after(16, self._ghost_anim_loop)
+        self._datos_arrastre["loop_id"] = self.after(16, self._bucle_anim_fantasma)
 
-    def _on_drag(self, event):
-        # El movimiento del ghost lo gestiona _ghost_anim_loop; aquí no hace falta nada.
+    def _al_arrastrar(self, event):
+        # El movimiento del ghost lo gestiona _bucle_anim_fantasma; aquí no hace falta nada.
         pass
 
-    def _start_gap_anim(self, new_idx: int):
-        anim = self._drag_anim
+    def _iniciar_anim_hueco(self, new_idx: int):
+        anim = self._anim_arrastre
         MAX_GAP = 44
         STEPS   = 10
         DELAY   = 13   # ~75fps
@@ -437,7 +437,7 @@ class MisTareasApp(ctk.CTk):
         anim["step"]       = 0
 
         def step():
-            if not self._drag_data:
+            if not self._datos_arrastre:
                 return
             anim["step"] += 1
             t = min(anim["step"] / STEPS, 1.0)
@@ -446,19 +446,19 @@ class MisTareasApp(ctk.CTk):
 
             # Cerrar gap anterior
             o = anim["old_target"]
-            if o is not None and o != new_idx and o < len(self._row_widgets):
+            if o is not None and o != new_idx and o < len(self._widgets_fila):
                 try:
-                    self._row_widgets[o].pack_configure(
+                    self._widgets_fila[o].pack_configure(
                         pady=(int(anim["old_gap"] * (1 - t_s)) + 3, 3))
                 except Exception:
                     pass
 
             # Abrir gap nuevo
-            if new_idx < len(self._row_widgets):
+            if new_idx < len(self._widgets_fila):
                 gap = int(MAX_GAP * t_s)
                 anim["old_gap"] = gap   # actualizar para la próxima transición
                 try:
-                    self._row_widgets[new_idx].pack_configure(pady=(gap + 3, 3))
+                    self._widgets_fila[new_idx].pack_configure(pady=(gap + 3, 3))
                 except Exception:
                     pass
 
@@ -469,34 +469,34 @@ class MisTareasApp(ctk.CTk):
 
         step()
 
-    def _end_drag_global(self, event):
+    def _fin_arrastre_global(self, event):
         self.unbind_all("<B1-Motion>")
         self.unbind_all("<ButtonRelease-1>")
-        self._end_drag(event)
+        self._fin_arrastre(event)
 
-    def _end_drag(self, event):
-        if not self._drag_data:
+    def _fin_arrastre(self, event):
+        if not self._datos_arrastre:
             return
 
         # Cancelar bucle de movimiento del ghost
-        loop_id = self._drag_data.get("loop_id")
-        if loop_id:
+        id_bucle = self._datos_arrastre.get("loop_id")
+        if id_bucle:
             try:
-                self.after_cancel(loop_id)
+                self.after_cancel(id_bucle)
             except Exception:
                 pass
 
         # Cancelar animación pendiente
-        if self._drag_anim.get("after_id"):
+        if self._anim_arrastre.get("after_id"):
             try:
-                self.after_cancel(self._drag_anim["after_id"])
+                self.after_cancel(self._anim_arrastre["after_id"])
             except Exception:
                 pass
-        self._drag_anim = {"target": None, "old_target": None,
-                           "old_gap": 0, "step": 0, "after_id": None}
+        self._anim_arrastre = {"target": None, "old_target": None,
+                               "old_gap": 0, "step": 0, "after_id": None}
 
         for key in ("ghost", "shadow"):
-            w = self._drag_data.get(key)
+            w = self._datos_arrastre.get(key)
             if w:
                 try:
                     w.destroy()
@@ -507,199 +507,199 @@ class MisTareasApp(ctk.CTk):
         except Exception:
             pass
 
-        src = self._drag_data.get("index")
-        tgt = self._drag_data.get("target", src)
-        if src is not None and src != tgt and 0 <= tgt < len(self.tasks):
-            task     = self.tasks[src]
-            tgt_task = self.tasks[tgt]
-            if task.get("priority") == tgt_task.get("priority"):
-                self.tasks.pop(src)
-                insert_at = tgt if tgt < src else tgt - 1
-                insert_at = max(0, min(insert_at, len(self.tasks)))
-                self.tasks.insert(insert_at, task)
-                self._selected = insert_at
-                self._save_tasks()
-        self._drag_data = {}
-        self._render_tasks()
+        origen  = self._datos_arrastre.get("index")
+        destino = self._datos_arrastre.get("target", origen)
+        if origen is not None and origen != destino and 0 <= destino < len(self.tareas):
+            tarea      = self.tareas[origen]
+            tarea_dest = self.tareas[destino]
+            if tarea.get("priority") == tarea_dest.get("priority"):
+                self.tareas.pop(origen)
+                pos_insercion = destino if destino < origen else destino - 1
+                pos_insercion = max(0, min(pos_insercion, len(self.tareas)))
+                self.tareas.insert(pos_insercion, tarea)
+                self._seleccionada = pos_insercion
+                self._guardar_tareas()
+        self._datos_arrastre = {}
+        self._renderizar_tareas()
 
-    def _get_drag_target(self, y_root: int) -> int:
-        if not self._row_widgets:
-            return self._drag_data.get("index", 0)
-        for i, w in enumerate(self._row_widgets):
+    def _obtener_destino_arrastre(self, y_root: int) -> int:
+        if not self._widgets_fila:
+            return self._datos_arrastre.get("index", 0)
+        for i, w in enumerate(self._widgets_fila):
             try:
                 if y_root < w.winfo_rooty() + w.winfo_height() // 2:
                     return i
             except Exception:
                 pass
-        return len(self._row_widgets) - 1
+        return len(self._widgets_fila) - 1
 
     # ── Renderizado ───────────────────────────────────────────────────────────
 
-    def _render_tasks(self):
-        for w in self._list.winfo_children():
+    def _renderizar_tareas(self):
+        for w in self._lista.winfo_children():
             w.destroy()
-        self._row_widgets = []
+        self._widgets_fila = []
 
-        if not self.tasks:
+        if not self.tareas:
             ctk.CTkLabel(
-                self._list,
+                self._lista,
                 text="Sin tareas por el momento.\n¡Añade una arriba!",
                 font=ctk.CTkFont(size=14),
                 text_color=C["text_muted"]
             ).pack(pady=50)
         else:
-            for i, task in enumerate(self.tasks):
-                self._task_row(i, task)
+            for i, tarea in enumerate(self.tareas):
+                self._fila_tarea(i, tarea)
 
-        self._update_counter()
+        self._actualizar_contador()
 
-    def _task_row(self, index: int, task: dict):
-        is_priority = task.get("priority", False)
-        is_selected = (self._selected == index)
+    def _fila_tarea(self, indice: int, tarea: dict):
+        es_prioritaria = tarea.get("priority", False)
+        es_seleccionada = (self._seleccionada == indice)
 
-        if is_selected:
-            bg = C["task_selected"]
-        elif is_priority:
-            bg = C["task_priority"]
+        if es_seleccionada:
+            fondo = C["task_selected"]
+        elif es_prioritaria:
+            fondo = C["task_priority"]
         else:
-            bg = C["task_bg"]
+            fondo = C["task_bg"]
 
-        row = ctk.CTkFrame(self._list, fg_color=bg, corner_radius=14)
-        row.pack(fill="x", pady=3, padx=2)
-        self._row_widgets.append(row)
-        row.bind("<Button-1>", lambda e, i=index: self._select_task(i))
+        fila = ctk.CTkFrame(self._lista, fg_color=fondo, corner_radius=14)
+        fila.pack(fill="x", pady=3, padx=2)
+        self._widgets_fila.append(fila)
+        fila.bind("<Button-1>", lambda e, i=indice: self._seleccionar_tarea(i))
 
         # Asa de arrastre (≡)
-        handle = ctk.CTkButton(
-            row, text="≡", width=22, height=30, corner_radius=6,
+        asa = ctk.CTkButton(
+            fila, text="≡", width=22, height=30, corner_radius=6,
             fg_color="transparent", hover_color=C["task_hover"],
             text_color=C["drag_handle"], font=ctk.CTkFont(size=16),
             command=lambda: None
         )
-        handle.pack(side="left", padx=(6, 0), pady=10)
-        handle.bind("<ButtonPress-1>", lambda e, i=index: self._start_drag(e, i))
+        asa.pack(side="left", padx=(6, 0), pady=10)
+        asa.bind("<ButtonPress-1>", lambda e, i=indice: self._iniciar_arrastre(e, i))
 
         # Checkbox
-        var = ctk.BooleanVar(value=task["done"])
+        var = ctk.BooleanVar(value=tarea["done"])
         ctk.CTkCheckBox(
-            row, text="", variable=var,
+            fila, text="", variable=var,
             width=24, height=24, checkbox_width=22, checkbox_height=22,
             corner_radius=6,
             fg_color=C["accent"], hover_color=C["accent_hover"],
             border_color=C["border"],
-            command=lambda i=index, v=var: self._toggle_task(i, v)
+            command=lambda i=indice, v=var: self._alternar_tarea(i, v)
         ).pack(side="left", padx=(4, 8), pady=10)
 
         # Botones de la derecha (deben empaquetarse ANTES que el frame expandible)
         ctk.CTkButton(
-            row, text="✕", width=30, height=30, corner_radius=8,
+            fila, text="✕", width=30, height=30, corner_radius=8,
             fg_color="transparent", hover_color=C["del_hover"],
             text_color=C["text_muted"], font=ctk.CTkFont(size=12),
-            command=lambda i=index: self._delete_task(i)
+            command=lambda i=indice: self._eliminar_tarea(i)
         ).pack(side="right", padx=(0, 4))
 
-        if not task["done"]:
-            star_text  = "★" if is_priority else "☆"
-            star_color = "#E67E22" if is_priority else C["text_muted"]
+        if not tarea["done"]:
+            texto_estrella = "★" if es_prioritaria else "☆"
+            color_estrella = "#E67E22" if es_prioritaria else C["text_muted"]
             ctk.CTkButton(
-                row, text=star_text, width=30, height=30, corner_radius=8,
+                fila, text=texto_estrella, width=30, height=30, corner_radius=8,
                 fg_color="transparent", hover_color=C["task_hover"],
-                text_color=star_color, font=ctk.CTkFont(size=16),
-                command=lambda i=index: self._toggle_priority(i)
+                text_color=color_estrella, font=ctk.CTkFont(size=16),
+                command=lambda i=indice: self._alternar_prioridad(i)
             ).pack(side="right", padx=(0, 2))
 
         # Columna central
-        info = ctk.CTkFrame(row, fg_color="transparent")
+        info = ctk.CTkFrame(fila, fg_color="transparent")
         info.pack(side="left", fill="x", expand=True, pady=6, padx=(0, 4))
-        info.bind("<Button-1>", lambda e, i=index: self._select_task(i))
+        info.bind("<Button-1>", lambda e, i=indice: self._seleccionar_tarea(i))
 
-        text_color = (C["text_priority"] if is_priority
-                      else C["text_muted"] if task["done"]
-                      else C["text"])
-        label_text = ("⭐ " if is_priority else "") + task["text"]
+        color_texto    = (C["text_priority"] if es_prioritaria
+                          else C["text_muted"] if tarea["done"]
+                          else C["text"])
+        texto_etiqueta = ("⭐ " if es_prioritaria else "") + tarea["text"]
 
         ctk.CTkLabel(
-            info, text=label_text,
-            font=ctk.CTkFont(size=14, overstrike=task["done"]),
-            text_color=text_color, anchor="w"
+            info, text=texto_etiqueta,
+            font=ctk.CTkFont(size=14, overstrike=tarea["done"]),
+            text_color=color_texto, anchor="w"
         ).pack(fill="x")
 
-        created = task.get("created_at", "")
-        done_at = task.get("done_at", "")
-        if created:
-            ts = f"🕐 Creada: {created}"
-            if done_at:
-                ts += f"   ✅ Hecha: {done_at}"
+        creada   = tarea.get("created_at", "")
+        hecha_el = tarea.get("done_at", "")
+        if creada:
+            marca_tiempo = f"🕐 Creada: {creada}"
+            if hecha_el:
+                marca_tiempo += f"   ✅ Hecha: {hecha_el}"
             ctk.CTkLabel(
-                info, text=ts,
+                info, text=marca_tiempo,
                 font=ctk.CTkFont(size=10),
                 text_color=C["text_muted"], anchor="w"
             ).pack(fill="x", pady=(1, 0))
 
-    def _update_counter(self):
-        total    = len(self.tasks)
-        done     = sum(1 for t in self.tasks if t["done"])
-        priority = sum(1 for t in self.tasks if t.get("priority"))
+    def _actualizar_contador(self):
+        total      = len(self.tareas)
+        hechas     = sum(1 for t in self.tareas if t["done"])
+        prioritarias = sum(1 for t in self.tareas if t.get("priority"))
         if total:
-            text = f"{done} de {total} completada{'s' if total != 1 else ''}"
-            if priority:
-                text += f"  ·  {priority} prioritaria{'s' if priority != 1 else ''}"
+            texto = f"{hechas} de {total} completada{'s' if total != 1 else ''}"
+            if prioritarias:
+                texto += f"  ·  {prioritarias} prioritaria{'s' if prioritarias != 1 else ''}"
         else:
-            text = ""
-        self._counter.configure(text=text)
+            texto = ""
+        self._contador.configure(text=texto)
 
     # ── Barra de menús nativa ─────────────────────────────────────────────────
 
-    def _build_menubar(self):
-        menubar = tk.Menu(self)
+    def _construir_barra_menus(self):
+        barra_menus = tk.Menu(self)
 
         if sys.platform == "darwin":
             # ── macOS: menú de aplicación estándar ──
-            app_menu = tk.Menu(menubar, name="apple", tearoff=False)
-            menubar.add_cascade(label="MisTareas", menu=app_menu)
-            app_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
-            app_menu.add_separator()
-            app_menu.add_command(label="Salir", command=self._quit, accelerator="Cmd+Q")
+            menu_app = tk.Menu(barra_menus, name="apple", tearoff=False)
+            barra_menus.add_cascade(label="MisTareas", menu=menu_app)
+            menu_app.add_command(label="Acerca de MisTareas", command=self._mostrar_acerca_de)
+            menu_app.add_separator()
+            menu_app.add_command(label="Salir", command=self._salir, accelerator="Cmd+Q")
 
-            tasks_menu = tk.Menu(menubar, tearoff=False)
-            menubar.add_cascade(label="Tareas", menu=tasks_menu)
-            tasks_menu.add_command(label="Borrar completadas", command=self._clear_done)
-            tasks_menu.add_command(label="Borrar todas",       command=self._clear_all)
+            menu_tareas = tk.Menu(barra_menus, tearoff=False)
+            barra_menus.add_cascade(label="Tareas", menu=menu_tareas)
+            menu_tareas.add_command(label="Borrar completadas", command=self._borrar_completadas)
+            menu_tareas.add_command(label="Borrar todas",       command=self._borrar_todas)
 
-            help_menu = tk.Menu(menubar, tearoff=False)
-            menubar.add_cascade(label="Ayuda", menu=help_menu)
-            help_menu.add_command(label="Ayuda de MisTareas", command=self._show_help)
-            help_menu.add_command(label="Licencia",            command=self._show_license)
+            menu_ayuda = tk.Menu(barra_menus, tearoff=False)
+            barra_menus.add_cascade(label="Ayuda", menu=menu_ayuda)
+            menu_ayuda.add_command(label="Ayuda de MisTareas", command=self._mostrar_ayuda)
+            menu_ayuda.add_command(label="Licencia",            command=self._mostrar_licencia)
 
         else:
             # ── Windows / Linux ──
-            file_menu = tk.Menu(menubar, tearoff=False)
-            menubar.add_cascade(label="Archivo", menu=file_menu)
-            file_menu.add_command(label="Salir", command=self._quit, accelerator="Ctrl+Q")
+            menu_archivo = tk.Menu(barra_menus, tearoff=False)
+            barra_menus.add_cascade(label="Archivo", menu=menu_archivo)
+            menu_archivo.add_command(label="Salir", command=self._salir, accelerator="Ctrl+Q")
 
-            tasks_menu = tk.Menu(menubar, tearoff=False)
-            menubar.add_cascade(label="Tareas", menu=tasks_menu)
-            tasks_menu.add_command(label="Borrar completadas", command=self._clear_done)
-            tasks_menu.add_command(label="Borrar todas",       command=self._clear_all)
+            menu_tareas = tk.Menu(barra_menus, tearoff=False)
+            barra_menus.add_cascade(label="Tareas", menu=menu_tareas)
+            menu_tareas.add_command(label="Borrar completadas", command=self._borrar_completadas)
+            menu_tareas.add_command(label="Borrar todas",       command=self._borrar_todas)
 
-            help_menu = tk.Menu(menubar, tearoff=False)
-            menubar.add_cascade(label="Ayuda", menu=help_menu)
-            help_menu.add_command(label="Ayuda de MisTareas", command=self._show_help)
-            help_menu.add_separator()
-            help_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
-            help_menu.add_command(label="Licencia",            command=self._show_license)
+            menu_ayuda = tk.Menu(barra_menus, tearoff=False)
+            barra_menus.add_cascade(label="Ayuda", menu=menu_ayuda)
+            menu_ayuda.add_command(label="Ayuda de MisTareas", command=self._mostrar_ayuda)
+            menu_ayuda.add_separator()
+            menu_ayuda.add_command(label="Acerca de MisTareas", command=self._mostrar_acerca_de)
+            menu_ayuda.add_command(label="Licencia",            command=self._mostrar_licencia)
 
-        self.config(menu=menubar)
+        self.config(menu=barra_menus)
 
     # ── Menú contextual (botón ⋮) ─────────────────────────────────────────────
 
-    def _show_menu(self):
-        if self._menu_popup is not None:
+    def _mostrar_menu(self):
+        if self._menu_emergente is not None:
             try:
-                self._menu_popup.destroy()
+                self._menu_emergente.destroy()
             except Exception:
                 pass
-            self._menu_popup = None
+            self._menu_emergente = None
             return
 
         menu = ctk.CTkToplevel(self)
@@ -709,28 +709,28 @@ class MisTareasApp(ctk.CTk):
         menu.configure(fg_color=C["bg"])
         menu.attributes("-topmost", True)
         menu.overrideredirect(True)
-        self._menu_popup = menu
-        self._menu_just_opened = True
-        menu.after(200, lambda: setattr(self, "_menu_just_opened", False))
+        self._menu_emergente = menu
+        self._menu_recien_abierto = True
+        menu.after(200, lambda: setattr(self, "_menu_recien_abierto", False))
 
         self.update_idletasks()
-        bx = self._menu_btn.winfo_rootx()
-        by = self._menu_btn.winfo_rooty() + self._menu_btn.winfo_height() + 4
+        bx = self._btn_menu.winfo_rootx()
+        by = self._btn_menu.winfo_rooty() + self._btn_menu.winfo_height() + 4
         menu.geometry(f"+{bx - 180}+{by}")
 
         def close_menu():
-            if self._menu_popup is not None:
+            if self._menu_emergente is not None:
                 try:
-                    self._menu_popup.destroy()
+                    self._menu_emergente.destroy()
                 except Exception:
                     pass
-                self._menu_popup = None
+                self._menu_emergente = None
 
         ctk.CTkFrame(menu, fg_color=C["border"], height=1).pack(fill="x", pady=(0, 4))
 
         for label, cmd in [
-            ("🗑   Borrar completadas", self._clear_done),
-            ("🗑   Borrar todas",        self._clear_all),
+            ("🗑   Borrar completadas", self._borrar_completadas),
+            ("🗑   Borrar todas",        self._borrar_todas),
         ]:
             def _action(c=cmd):
                 close_menu()
@@ -745,237 +745,237 @@ class MisTareasApp(ctk.CTk):
 
     # ── Ventanas de información ───────────────────────────────────────────────
 
-    def _info_window(self, title: str, w: int, h: int):
-        win = ctk.CTkToplevel(self)
-        win.title(title)
-        win.geometry(f"{w}x{h}")
-        win.resizable(False, False)
-        win.configure(fg_color=C["bg"])
-        win.attributes("-topmost", True)
-        win.grab_set()
+    def _ventana_info(self, title: str, w: int, h: int):
+        ventana = ctk.CTkToplevel(self)
+        ventana.title(title)
+        ventana.geometry(f"{w}x{h}")
+        ventana.resizable(False, False)
+        ventana.configure(fg_color=C["bg"])
+        ventana.attributes("-topmost", True)
+        ventana.grab_set()
         self.update_idletasks()
         x = self.winfo_x() + (self.winfo_width()  - w) // 2
         y = self.winfo_y() + (self.winfo_height() - h) // 2
-        win.geometry(f"+{x}+{y}")
-        return win
+        ventana.geometry(f"+{x}+{y}")
+        return ventana
 
-    def _show_about(self):
-        win = self._info_window("Acerca de MisTareas", 320, 200)
-        ctk.CTkLabel(win, text="✓  MisTareas",
+    def _mostrar_acerca_de(self):
+        ventana = self._ventana_info("Acerca de MisTareas", 320, 200)
+        ctk.CTkLabel(ventana, text="✓  MisTareas",
                      font=ctk.CTkFont(size=22, weight="bold"),
                      text_color=C["accent"]).pack(pady=(28, 4))
-        ctk.CTkLabel(win, text="Creado por Fabián Viera",
+        ctk.CTkLabel(ventana, text="Creado por Fabián Viera",
                      font=ctk.CTkFont(size=13), text_color=C["text"]).pack()
-        ctk.CTkLabel(win, text="2026  ·  Versión beta 0.2  ·  Para uso no comercial",
+        ctk.CTkLabel(ventana, text="2026  ·  Versión beta 0.2  ·  Para uso no comercial",
                      font=ctk.CTkFont(size=12), text_color=C["text_muted"]).pack(pady=(2, 20))
-        ctk.CTkButton(win, text="Cerrar", width=100, height=34, corner_radius=10,
+        ctk.CTkButton(ventana, text="Cerrar", width=100, height=34, corner_radius=10,
                       fg_color=C["accent"], hover_color=C["accent_hover"],
-                      text_color="white", command=win.destroy).pack()
+                      text_color="white", command=ventana.destroy).pack()
 
-    def _show_license(self):
-        win = self._info_window("Licencia", 560, 440)
-        ctk.CTkLabel(win, text="Licencia — GNU General Public License v3",
+    def _mostrar_licencia(self):
+        ventana = self._ventana_info("Licencia", 560, 440)
+        ctk.CTkLabel(ventana, text="Licencia — GNU General Public License v3",
                      font=ctk.CTkFont(size=14, weight="bold"),
                      text_color=C["accent"]).pack(pady=(16, 8), padx=16)
 
-        box = ctk.CTkTextbox(win, fg_color=C["input_bg"], border_color=C["border"],
+        box = ctk.CTkTextbox(ventana, fg_color=C["input_bg"], border_color=C["border"],
                              text_color=C["text"], font=ctk.CTkFont(size=11),
                              corner_radius=10, border_width=1, wrap="word")
         box.pack(fill="both", expand=True, padx=16, pady=(0, 8))
 
         if getattr(sys, 'frozen', False):
-            lpath = os.path.join(sys._MEIPASS, "LICENSE")
+            ruta_licencia = os.path.join(sys._MEIPASS, "LICENSE")
         else:
-            lpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LICENSE")
+            ruta_licencia = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LICENSE")
 
-        if os.path.exists(lpath):
-            with open(lpath, "r", encoding="utf-8") as f:
+        if os.path.exists(ruta_licencia):
+            with open(ruta_licencia, "r", encoding="utf-8") as f:
                 box.insert("end", f.read())
         else:
             box.insert("end", "GNU General Public License v3\n\nhttps://www.gnu.org/licenses/gpl-3.0.html")
         box.configure(state="disabled")
-        ctk.CTkButton(win, text="Cerrar", width=100, height=34, corner_radius=10,
+        ctk.CTkButton(ventana, text="Cerrar", width=100, height=34, corner_radius=10,
                       fg_color=C["accent"], hover_color=C["accent_hover"],
-                      text_color="white", command=win.destroy).pack(pady=(0, 16))
+                      text_color="white", command=ventana.destroy).pack(pady=(0, 16))
 
-    def _show_help(self):
-        win = self._info_window("Ayuda — MisTareas", 520, 620)
+    def _mostrar_ayuda(self):
+        ventana = self._ventana_info("Ayuda — MisTareas", 520, 620)
 
         # ── Cabecera ──
-        header = ctk.CTkFrame(win, fg_color=C["accent"], corner_radius=0, height=68)
-        header.pack(fill="x")
-        header.pack_propagate(False)
+        cabecera = ctk.CTkFrame(ventana, fg_color=C["accent"], corner_radius=0, height=68)
+        cabecera.pack(fill="x")
+        cabecera.pack_propagate(False)
         ctk.CTkLabel(
-            header, text="✓  MisTareas  —  Guía rápida",
+            cabecera, text="✓  MisTareas  —  Guía rápida",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color="white"
         ).pack(expand=True)
 
         # ── Área desplazable ──
-        scroll = ctk.CTkScrollableFrame(
-            win, fg_color=C["bg"],
+        desplazable = ctk.CTkScrollableFrame(
+            ventana, fg_color=C["bg"],
             scrollbar_button_color=C["scroll"],
             scrollbar_button_hover_color=C["accent"]
         )
-        scroll.pack(fill="both", expand=True, padx=0, pady=0)
+        desplazable.pack(fill="both", expand=True, padx=0, pady=0)
 
-        def section(icon, title, color, items):
+        def seccion(icon, title, color, items):
             """Dibuja una sección con cabecera coloreada y lista de items."""
             # Cabecera de sección
-            sh = ctk.CTkFrame(scroll, fg_color=color, corner_radius=10, height=36)
-            sh.pack(fill="x", padx=14, pady=(12, 0))
-            sh.pack_propagate(False)
+            cab_seccion = ctk.CTkFrame(desplazable, fg_color=color, corner_radius=10, height=36)
+            cab_seccion.pack(fill="x", padx=14, pady=(12, 0))
+            cab_seccion.pack_propagate(False)
             ctk.CTkLabel(
-                sh, text=f"  {icon}  {title}",
+                cab_seccion, text=f"  {icon}  {title}",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 text_color="white", anchor="w"
             ).pack(fill="x", padx=8, expand=True)
 
             # Tarjeta de contenido
-            card = ctk.CTkFrame(scroll, fg_color=C["input_bg"],
-                                corner_radius=10, border_width=1,
-                                border_color=C["border"])
-            card.pack(fill="x", padx=14, pady=(0, 2))
+            tarjeta = ctk.CTkFrame(desplazable, fg_color=C["input_bg"],
+                                   corner_radius=10, border_width=1,
+                                   border_color=C["border"])
+            tarjeta.pack(fill="x", padx=14, pady=(0, 2))
 
-            for bullet, text in items:
-                row = ctk.CTkFrame(card, fg_color="transparent")
-                row.pack(fill="x", padx=12, pady=(6, 0))
+            for bullet, texto in items:
+                fila = ctk.CTkFrame(tarjeta, fg_color="transparent")
+                fila.pack(fill="x", padx=12, pady=(6, 0))
                 ctk.CTkLabel(
-                    row, text=bullet,
+                    fila, text=bullet,
                     font=ctk.CTkFont(size=14),
                     text_color=color, width=24, anchor="w"
                 ).pack(side="left", padx=(0, 6))
                 ctk.CTkLabel(
-                    row, text=text,
+                    fila, text=texto,
                     font=ctk.CTkFont(size=12),
                     text_color=C["text"], anchor="w", wraplength=380, justify="left"
                 ).pack(side="left", fill="x", expand=True)
-            ctk.CTkFrame(card, fg_color="transparent", height=6).pack()
+            ctk.CTkFrame(tarjeta, fg_color="transparent", height=6).pack()
 
-        section("📝", "Crear una tarea", "#5B9BD5", [
+        seccion("📝", "Crear una tarea", "#5B9BD5", [
             ("+",     "Escribe el texto en el campo superior."),
             ("↵",     "Pulsa [+] o la tecla Enter para añadirla."),
         ])
 
-        section("✅", "Completar y descompletar", "#27AE60", [
+        seccion("✅", "Completar y descompletar", "#27AE60", [
             ("☑",     "Haz clic en el checkbox (☐) para marcarla como hecha. El texto aparecerá tachado."),
             ("↩",     "Vuelve a hacer clic en el checkbox para desmarcarla."),
             ("🕐",    "Se registra automáticamente la fecha y hora de creación y de finalización."),
         ])
 
-        section("⭐", "Tareas prioritarias", "#E67E22", [
+        seccion("⭐", "Tareas prioritarias", "#E67E22", [
             ("☆",     "Pulsa la estrella (☆) en el lado derecho de la tarea para marcarla como prioritaria."),
             ("⬆",     "Las tareas prioritarias suben automáticamente al inicio de la lista con texto en rojo."),
             ("★",     "Pulsa [★] de nuevo para quitar la prioridad."),
             ("ℹ",     "Al marcar una tarea prioritaria como completada, pierde la prioridad automáticamente."),
         ])
 
-        section("↕", "Ordenar tareas", "#8E44AD", [
+        seccion("↕", "Ordenar tareas", "#8E44AD", [
             ("≡",     "Arrastra el icono [≡] (izquierda de la fila) para reordenar con el ratón."),
             ("↑↓",    "Selecciona una tarea haciendo clic en ella (se resalta en azul) y usa ↑ ↓ para moverla con el teclado."),
             ("⚠",     "Solo puedes mover tareas dentro de su sección: prioritarias con prioritarias, normales con normales."),
         ])
 
-        section("🗑", "Eliminar tareas", "#C0392B", [
+        seccion("🗑", "Eliminar tareas", "#C0392B", [
             ("✕",     "Pulsa [✕] en la fila para eliminar esa tarea."),
             ("⋮",     "Menú [⋮] o menú Tareas → «Borrar completadas» para limpiar las tareas hechas."),
             ("⚠",     "Menú Tareas → «Borrar todas» elimina toda la lista sin posibilidad de recuperación."),
         ])
 
-        section("📌", "Fijar la ventana", "#2980B9", [
+        seccion("📌", "Fijar la ventana", "#2980B9", [
             ("📌",    "El botón [📌] de la cabecera mantiene la ventana siempre encima de las demás apps."),
             ("📍",    "Al activarse el botón cambia a [📍] con fondo azul. Pulsa de nuevo para desactivarlo."),
         ])
 
-        ctk.CTkFrame(scroll, fg_color="transparent", height=8).pack()
+        ctk.CTkFrame(desplazable, fg_color="transparent", height=8).pack()
 
         # ── Pie ──
-        footer = ctk.CTkFrame(win, fg_color=C["header"], corner_radius=0, height=52)
-        footer.pack(fill="x", side="bottom")
-        footer.pack_propagate(False)
+        pie = ctk.CTkFrame(ventana, fg_color=C["header"], corner_radius=0, height=52)
+        pie.pack(fill="x", side="bottom")
+        pie.pack_propagate(False)
         ctk.CTkLabel(
-            footer, text="Fabián Viera · 2026 · Versión beta 0.2",
+            pie, text="Fabián Viera · 2026 · Versión beta 0.2",
             font=ctk.CTkFont(size=11), text_color=C["text_muted"]
         ).pack(side="left", padx=16, expand=True)
         ctk.CTkButton(
-            footer, text="Cerrar", width=90, height=34, corner_radius=10,
+            pie, text="Cerrar", width=90, height=34, corner_radius=10,
             fg_color=C["accent"], hover_color=C["accent_hover"],
             text_color="white", font=ctk.CTkFont(size=13),
-            command=win.destroy
+            command=ventana.destroy
         ).pack(side="right", padx=16)
 
     # ── Acciones del menú Tareas ──────────────────────────────────────────────
 
-    def _clear_done(self):
-        count = sum(1 for t in self.tasks if t["done"])
-        if count == 0:
+    def _borrar_completadas(self):
+        cantidad = sum(1 for t in self.tareas if t["done"])
+        if cantidad == 0:
             messagebox.showinfo("MisTareas", "No hay tareas completadas.")
             return
-        if messagebox.askyesno("Confirmar", f"¿Borrar {count} tarea(s) completada(s)?"):
-            self.tasks     = [t for t in self.tasks if not t["done"]]
-            self._selected = None
-            self._save_tasks()
-            self._render_tasks()
+        if messagebox.askyesno("Confirmar", f"¿Borrar {cantidad} tarea(s) completada(s)?"):
+            self.tareas    = [t for t in self.tareas if not t["done"]]
+            self._seleccionada = None
+            self._guardar_tareas()
+            self._renderizar_tareas()
 
-    def _clear_all(self):
-        if not self.tasks:
+    def _borrar_todas(self):
+        if not self.tareas:
             messagebox.showinfo("MisTareas", "No hay tareas.")
             return
-        if messagebox.askyesno("Confirmar", f"¿Borrar las {len(self.tasks)} tarea(s)?"):
-            self.tasks     = []
-            self._selected = None
-            self._save_tasks()
-            self._render_tasks()
+        if messagebox.askyesno("Confirmar", f"¿Borrar las {len(self.tareas)} tarea(s)?"):
+            self.tareas    = []
+            self._seleccionada = None
+            self._guardar_tareas()
+            self._renderizar_tareas()
 
-    def _quit(self):
-        self._save_tasks()
+    def _salir(self):
+        self._guardar_tareas()
         self.destroy()
 
     # ── Siempre visible ───────────────────────────────────────────────────────
 
-    def _toggle_pin(self):
-        self._always_on_top = not self._always_on_top
-        self.attributes("-topmost", self._always_on_top)
-        self._update_pin_btn()
+    def _alternar_pin(self):
+        self._siempre_visible = not self._siempre_visible
+        self.attributes("-topmost", self._siempre_visible)
+        self._actualizar_btn_pin()
 
-    def _update_pin_btn(self):
-        if self._always_on_top:
-            self._pin_btn.configure(text="📍", fg_color=C["accent"], text_color="white")
+    def _actualizar_btn_pin(self):
+        if self._siempre_visible:
+            self._btn_pin.configure(text="📍", fg_color=C["accent"], text_color="white")
         else:
-            self._pin_btn.configure(text="📌", fg_color="transparent", text_color=C["text_muted"])
+            self._btn_pin.configure(text="📌", fg_color="transparent", text_color=C["text_muted"])
 
     # ── Persistencia ──────────────────────────────────────────────────────────
 
-    def _save_tasks(self):
-        tmp = TASKS_FILE + ".tmp"
+    def _guardar_tareas(self):
+        temporal = ARCHIVO_TAREAS + ".tmp"
         try:
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(self.tasks, f, ensure_ascii=False, indent=2)
-            os.replace(tmp, TASKS_FILE)
+            with open(temporal, "w", encoding="utf-8") as f:
+                json.dump(self.tareas, f, ensure_ascii=False, indent=2)
+            os.replace(temporal, ARCHIVO_TAREAS)
         except Exception as e:
             try:
-                os.remove(tmp)
+                os.remove(temporal)
             except Exception:
                 pass
             messagebox.showerror("MisTareas", f"Error al guardar las tareas:\n{e}")
 
-    def _load_tasks(self):
-        if os.path.exists(TASKS_FILE):
+    def _cargar_tareas(self):
+        if os.path.exists(ARCHIVO_TAREAS):
             try:
-                with open(TASKS_FILE, "r", encoding="utf-8") as f:
-                    self.tasks = json.load(f)
-                for t in self.tasks:
+                with open(ARCHIVO_TAREAS, "r", encoding="utf-8") as f:
+                    self.tareas = json.load(f)
+                for t in self.tareas:
                     t.setdefault("priority",    False)
                     t.setdefault("priority_at", None)
             except Exception as e:
-                self.tasks = []
+                self.tareas = []
                 messagebox.showerror(
                     "MisTareas",
                     f"No se pudo leer el archivo de tareas.\n"
                     f"Se empezará con la lista vacía.\n\nDetalle: {e}"
                 )
         else:
-            self.tasks = []
+            self.tareas = []
 
 
 # ── Entrada ───────────────────────────────────────────────────────────────────
