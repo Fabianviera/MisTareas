@@ -67,7 +67,9 @@ class MisTareasApp(ctk.CTk):
         self._render_tasks()
 
         self.protocol("WM_DELETE_WINDOW", self._quit)
-        self.bind_all("<Command-q>", lambda _: self._quit())
+        quit_key = "<Command-q>" if sys.platform == "darwin" else "<Control-q>"
+        self.bind_all(quit_key, lambda _: self._quit())
+        self.bind_all("<Button-1>", self._on_global_click)
         self.bind_all("<Up>",   self._on_key_up)
         self.bind_all("<Down>", self._on_key_down)
 
@@ -144,6 +146,9 @@ class MisTareasApp(ctk.CTk):
         text = self._entry.get().strip()
         if not text:
             return
+        if len(text) > 200:
+            messagebox.showwarning("MisTareas", "El texto no puede superar los 200 caracteres.")
+            return
         self.tasks.append({
             "text": text, "done": False,
             "created_at": _now(), "done_at": None,
@@ -193,8 +198,23 @@ class MisTareasApp(ctk.CTk):
         self._render_tasks()
 
     def _select_task(self, index: int):
+        old = self._selected
         self._selected = None if self._selected == index else index
-        self._render_tasks()
+        for idx in (old, self._selected):
+            if idx is not None and idx < len(self._row_widgets):
+                task = self.tasks[idx]
+                is_priority = task.get("priority", False)
+                is_selected = (self._selected == idx)
+                if is_selected:
+                    bg = C["task_selected"]
+                elif is_priority:
+                    bg = C["task_priority"]
+                else:
+                    bg = C["task_bg"]
+                try:
+                    self._row_widgets[idx].configure(fg_color=bg)
+                except Exception:
+                    pass
 
     def _on_key_up(self, event):
         if not isinstance(event.widget, (ctk.CTkEntry, tk.Entry)):
@@ -216,6 +236,28 @@ class MisTareasApp(ctk.CTk):
                 self._selected = j
                 self._save_tasks()
                 self._render_tasks()
+
+    # ── Menú: cerrar al hacer clic fuera ─────────────────────────────────────
+
+    def _on_global_click(self, event):
+        if self._menu_popup is None or getattr(self, "_menu_just_opened", False):
+            return
+        menu = self._menu_popup
+        try:
+            mx, my = menu.winfo_rootx(), menu.winfo_rooty()
+            mw, mh = menu.winfo_width(), menu.winfo_height()
+            if not (mx <= event.x_root <= mx + mw and my <= event.y_root <= my + mh):
+                try:
+                    menu.destroy()
+                except Exception:
+                    pass
+                self._menu_popup = None
+        except Exception:
+            try:
+                menu.destroy()
+            except Exception:
+                pass
+            self._menu_popup = None
 
     # ── Drag & Drop ───────────────────────────────────────────────────────────
 
@@ -648,6 +690,8 @@ class MisTareasApp(ctk.CTk):
         menu.attributes("-topmost", True)
         menu.overrideredirect(True)
         self._menu_popup = menu
+        self._menu_just_opened = True
+        menu.after(200, lambda: setattr(self, "_menu_just_opened", False))
 
         self.update_idletasks()
         bx = self._menu_btn.winfo_rootx()
@@ -661,19 +705,6 @@ class MisTareasApp(ctk.CTk):
                 except Exception:
                     pass
                 self._menu_popup = None
-            self.unbind_all("<Button-1>")
-
-        def on_click_outside(event):
-            try:
-                mx, my = menu.winfo_rootx(), menu.winfo_rooty()
-                mw, mh = menu.winfo_width(), menu.winfo_height()
-                if not (mx <= event.x_root <= mx + mw and my <= event.y_root <= my + mh):
-                    close_menu()
-            except Exception:
-                close_menu()
-
-        menu.after(150, lambda: self.bind_all("<Button-1>", on_click_outside))
-        menu.bind("<Destroy>", lambda e: self.unbind_all("<Button-1>"))
 
         ctk.CTkFrame(menu, fg_color=C["border"], height=1).pack(fill="x", pady=(0, 4))
 
@@ -897,8 +928,17 @@ class MisTareasApp(ctk.CTk):
     # ── Persistencia ──────────────────────────────────────────────────────────
 
     def _save_tasks(self):
-        with open(TASKS_FILE, "w", encoding="utf-8") as f:
-            json.dump(self.tasks, f, ensure_ascii=False, indent=2)
+        tmp = TASKS_FILE + ".tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.tasks, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, TASKS_FILE)
+        except Exception as e:
+            try:
+                os.remove(tmp)
+            except Exception:
+                pass
+            messagebox.showerror("MisTareas", f"Error al guardar las tareas:\n{e}")
 
     def _load_tasks(self):
         if os.path.exists(TASKS_FILE):
@@ -908,8 +948,13 @@ class MisTareasApp(ctk.CTk):
                 for t in self.tasks:
                     t.setdefault("priority",    False)
                     t.setdefault("priority_at", None)
-            except Exception:
+            except Exception as e:
                 self.tasks = []
+                messagebox.showerror(
+                    "MisTareas",
+                    f"No se pudo leer el archivo de tareas.\n"
+                    f"Se empezará con la lista vacía.\n\nDetalle: {e}"
+                )
         else:
             self.tasks = []
 
