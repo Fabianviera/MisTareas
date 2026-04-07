@@ -653,12 +653,10 @@ class MisTareasApp(ctk.CTk):
     def _build_menubar(self):
         menubar = tk.Menu(self)
 
-        app_menu = tk.Menu(menubar, name="apple", tearoff=False)
-        menubar.add_cascade(label="Archivo", menu=app_menu)
-        app_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
-        app_menu.add_command(label="Licencia",            command=self._show_license)
-        app_menu.add_separator()
-        app_menu.add_command(label="Salir", command=self._quit, accelerator="Cmd+Q")
+        quit_accel = "Cmd+Q" if sys.platform == "darwin" else "Ctrl+Q"
+        file_menu = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label="Archivo", menu=file_menu)
+        file_menu.add_command(label="Salir", command=self._quit, accelerator=quit_accel)
 
         tasks_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="Tareas", menu=tasks_menu)
@@ -668,6 +666,9 @@ class MisTareasApp(ctk.CTk):
         help_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="Ayuda", menu=help_menu)
         help_menu.add_command(label="Ayuda de MisTareas", command=self._show_help)
+        help_menu.add_separator()
+        help_menu.add_command(label="Acerca de MisTareas", command=self._show_about)
+        help_menu.add_command(label="Licencia",            command=self._show_license)
 
         self.config(menu=menubar)
 
@@ -684,7 +685,7 @@ class MisTareasApp(ctk.CTk):
 
         menu = ctk.CTkToplevel(self)
         menu.title("")
-        menu.geometry("220x175")
+        menu.geometry("220x110")
         menu.resizable(False, False)
         menu.configure(fg_color=C["bg"])
         menu.attributes("-topmost", True)
@@ -711,7 +712,6 @@ class MisTareasApp(ctk.CTk):
         for label, cmd in [
             ("🗑   Borrar completadas", self._clear_done),
             ("🗑   Borrar todas",        self._clear_all),
-            ("✕    Salir",              self._quit),
         ]:
             def _action(c=cmd):
                 close_menu()
