@@ -1,6 +1,6 @@
 [Setup]
 AppName=MisTareas
-AppVersion=0.2 Beta
+AppVersion=1.0
 AppPublisher=Fabián Viera
 DefaultDirName={autopf}\MisTareas
 DefaultGroupName=MisTareas

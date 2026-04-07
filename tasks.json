@@ -12,8 +12,16 @@
     "done": false,
     "created_at": "06/04/2026  18:57",
     "done_at": null,
-    "priority": true,
-    "priority_at": "06/04/2026  19:10"
+    "priority": false,
+    "priority_at": null
+  },
+  {
+    "text": "prueba2",
+    "done": true,
+    "created_at": "29/03/2026  11:02",
+    "done_at": "06/04/2026  19:24",
+    "priority": false,
+    "priority_at": null
   },
   {
     "text": "prueba1",
@@ -28,14 +36,6 @@
     "done": false,
     "created_at": "06/04/2026  18:57",
     "done_at": null,
-    "priority": false,
-    "priority_at": null
-  },
-  {
-    "text": "prueba2",
-    "done": true,
-    "created_at": "29/03/2026  11:02",
-    "done_at": "06/04/2026  19:24",
     "priority": false,
     "priority_at": null
   }
