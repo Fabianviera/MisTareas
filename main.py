@@ -332,7 +332,7 @@ class MisTareasApp(ctk.CTk):
 
         gcv = tk.Canvas(fantasma, width=ancho_fila, height=alto_fila, bg=TRANS, highlightthickness=0)
         gcv.pack(fill="both", expand=True)
-        self._rect_redondeado(gcv, 0, 0, ancho_fila, alto_fila, r, fondo, C["accent"])
+        self._rect_redondeado(gcv, 0, 0, ancho_fila, alto_fila, r, fondo)
         gcv.create_text(16, alto_fila//2, text="≡",           fill=C["drag_handle"],
                         font=("Segoe UI", 15), anchor="w")
         gcv.create_text(36, alto_fila//2, text=texto_etiqueta, fill=color_texto,
