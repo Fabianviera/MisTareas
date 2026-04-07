@@ -22,6 +22,12 @@
 
 Ejecuta el instalador y sigue el asistente. Se creará acceso directo en el escritorio y en el menú inicio.
 
+> **⚠ Aviso de Windows SmartScreen**
+> Al ejecutar el instalador, Windows puede mostrar el mensaje "Windows protegió su equipo".
+> Esto ocurre porque el archivo no está firmado digitalmente. Para continuar:
+> 1. Haz clic en **"Más información"**
+> 2. Haz clic en **"Ejecutar de todas formas"**
+
 ### macOS
 
 En construcción...
